@@ -17,10 +17,14 @@ BIN_INSTALL_DIR=/usr/local
 sudo apt -y install apt-transport-https ca-certificates curl software-properties-common
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu cosmic stable"
 sudo apt -y install docker-ce
-OPENCV_VERSION=master
-BIN_INSTALL_DIR=/usr/local
 
-sudo apt -y install pkg-config yasm curl wget libjpeg8-dev libtiff-dev  libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libv4l-dev software-properties-common  libgstreamer1.0-dev  libgstreamer-plugins-base1.0-dev libgtk2.0-dev libtbb-dev qt5-default libatlas-base-dev libfaac-dev libmp3lame-dev libtheora-dev libvorbis-dev libxvidcore-dev libopencore-amrnb-dev libopencore-amrwb-dev libavresample-dev x264 v4l-utils libgphoto2-dev libeigen3-dev libhdf5-dev doxygen git gfortran build-essential checkinstall cmake libgstreamer1.0-dev ant-contrib libv4l-dev libx264-dev openexr openssl libssl-dev
+sudo apt -y install pkg-config yasm curl wget libjpeg8-dev libtiff-dev  libavcodec-dev libavformat-dev libswscale-dev \
+libdc1394-22-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libv4l-dev \
+software-properties-common  libgstreamer1.0-dev  libgstreamer-plugins-base1.0-dev libgtk2.0-dev libtbb-dev \
+qt5-default libatlas-base-dev libfaac-dev libmp3lame-dev libtheora-dev libvorbis-dev libxvidcore-dev \
+ibopencore-amrnb-dev libopencore-amrwb-dev libavresample-dev x264 v4l-utils libgphoto2-dev libeigen3-dev libhdf5-dev \
+doxygen git gfortran build-essential checkinstall cmake libgstreamer1.0-dev ant-contrib libv4l-dev libx264-dev \
+openexr openssl libssl-dev openjdk-8-*
 
 if [ $? != 0 ]; then
     echo "ERROR: Check the instalation, fix then and rerun the installer"
@@ -96,6 +100,19 @@ else
     make install
 fi
 
+echo "Installing the jar file in maven local repo.."
+JAR_NAME=$(ls /usr/local/share/java/opencv4/ | grep .jar)
+JAR_PATH=${BIN_INSTALL_DIR}/share/java/opencv4/${JAR_NAME}
+mvn install:install-file  -Dfile=${JAR_PATH} \
+                          -DgroupId=org.opencv \
+                          -DartifactId=opencv \
+                          -Dversion=${OPENCV_VERSION} \
+                          -Dpackaging=jar \
+                          -DgeneratePom=true
+
+SO_LIB_NAME=$(ls /usr/local/share/java/opencv4/ | grep .so)
+SO_LIB__PATH=${BIN_INSTALL_DIR}/share/java/opencv4/${SO_LIB_NAME}
+sudo cp ${SO_LIB__PATH} /usr/lib/
 
 echo "Installation finished"
 echo "The jar: 'opencv-410.jar' is saved in ls /usr/local/share/java/opencv4"
