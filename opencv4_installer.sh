@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 BUILD_FOR_JAVA=ON
-BUILD_FOR_PYTHON=OFF
+BUILD_FOR_PYTHON=ON
 OPENCV_VERSION=4.1.0
 ANT_HOME=/usr/share/ant
 # OFF = JAR includes all the OpenCV code inside (recommended for docker)
@@ -12,7 +12,10 @@ BUILD_SHARED_LIBS=OFF
 INSTALLER_DIR=./installers
 TMP_DIR=/tmp/opencv
 BIN_INSTALL_DIR=/usr/local
-
+rm -rf ${INSTALLER_DIR}
+rm -rf ${TMP_DIR}
+mkdir -p ${INSTALLER_DIR}
+mkdir -p ${TMP_DIR}
 
 sudo apt -y install apt-transport-https ca-certificates curl software-properties-common
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu cosmic stable"
@@ -24,16 +27,16 @@ software-properties-common  libgstreamer1.0-dev  libgstreamer-plugins-base1.0-de
 qt5-default libatlas-base-dev libfaac-dev libmp3lame-dev libtheora-dev libvorbis-dev libxvidcore-dev \
 ibopencore-amrnb-dev libopencore-amrwb-dev libavresample-dev x264 v4l-utils libgphoto2-dev libeigen3-dev libhdf5-dev \
 doxygen git gfortran build-essential checkinstall cmake libgstreamer1.0-dev ant-contrib libv4l-dev libx264-dev \
-openexr openssl libssl-dev openjdk-8-*
+openexr openssl libssl-dev mesa-common-dev libgl1-mesa-dev openjdk-8-*
 
-if [ $? != 0 ]; then
+if [[ $? != 0 ]]; then
     echo "ERROR: Check the instalation, fix then and rerun the installer"
 fi
 
 
 sudo apt -y install libgstreamer-plugins-base1.0-dev lvtk-dev ant java-wrappers libblas-dev liblapack-dev libeigen3-dev libavcodec-dev libavcodec-extra libavformat-dev libavutil-dev libswscale-dev libswscale-dev libgstreamer1.0-dev ffmpeg ccache libopenblas-dev libtiff5-dev pylint flake8 libcaffe-cuda-dev  libprotobuf-dev libogre-1.9-dev libvtk7-qt-dev libtesseract-dev libatlas-base-dev libatlas-cpp-0.6-dev libhdf5-dev libhdf5-dev libjhdf5-java libleptonica-dev libgtkmm-3.0-dev libgtk-3-dev libjpeg-dev liblapacke-dev libprotobuf-c-dev
 
-if [ $? != 0 ]; then
+if [[ $? != 0 ]]; then
     echo "ERROR: Check the instalation, fix then and rerun the installer"
 fi
 
@@ -42,7 +45,7 @@ sudo ln -s /usr/bin/vtk7 /usr/bin/vtk
 
 sudo apt -y install libatlas-base-dev libfaac-dev libmp3lame-dev libtheora-dev libvorbis-dev libxvidcore-dev libopencore-amrnb-dev libopencore-amrwb-dev libavresample-dev x264 v4l-utils libprotobuf-dev protobuf-compiler libgoogle-glog-dev libgflags-dev libprotobuf-dev protobuf-compiler libgtk2.0-dev libtbb-dev qt5-default python3-testresources python3-dev python3-pip
 
-if [ $? != 0 ]; then
+if [[ $? != 0 ]]; then
     echo "ERROR: Check the instalation, fix then and rerun the installer"
 fi
 
@@ -59,7 +62,7 @@ sudo pip install pip numpy scipy matplotlib scikit-image scikit-learn ipython dl
 
 
 
-if [ ! -f ${INSTALLER_DIR}/opencv.zip ]; then
+if [[ ! -f ${INSTALLER_DIR}/opencv.zip ]]; then
     echo "Downloading the installers in ${INSTALLER_DIR} folder"
     curl -L -o ${INSTALLER_DIR}/opencv.zip https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.zip
     curl -L -o ${INSTALLER_DIR}/opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${OPENCV_VERSION}.zip
@@ -67,11 +70,11 @@ else
     echo "Taking the ./installers folder files"
 fi
 
-if [ ! -d ${TMP_DIR} ]; then
-    mkdir -p ${TMP_DIR}
-    unzip ${INSTALLER_DIR}/opencv.zip -d ${TMP_DIR}
-    unzip ${INSTALLER_DIR}/opencv_contrib.zip -d ${TMP_DIR}
-fi
+
+mkdir -p ${TMP_DIR}
+unzip ${INSTALLER_DIR}/opencv.zip -d ${TMP_DIR}
+unzip ${INSTALLER_DIR}/opencv_contrib.zip -d ${TMP_DIR}
+
 
 mkdir -p ${TMP_DIR}/opencv-${OPENCV_VERSION}/build
 cd ${TMP_DIR}/opencv-${OPENCV_VERSION}/build
@@ -82,13 +85,17 @@ cmake -DCMAKE_BUILD_TYPE=RELEASE \
  -DBUILD_DOCS=OFF \
  -DBUILD_EXAMPLES=OFF \
  -DBUILD_TESTS=OFF \
+ -D WITH_TBB=ON \
  -DBUILD_PERF_TESTS=OFF \
  -DOPENCV_ENABLE_NONFREE=ON \
  -DBUILD_opencv_java=${BUILD_FOR_JAVA} \
  -DBUILD_opencv_python=${BUILD_FOR_PYTHON} \
  -DBUILD_opencv_python2=${BUILD_FOR_PYTHON} \
  -DBUILD_SHARED_LIBS=${BUILD_SHARED_LIBS} \
+ -DWITH_LIBV4L=ON \
+ -DWITH_V4L=OFF \
  -DBUILD_opencv_python3=${BUILD_FOR_PYTHON} ..
+
 
 make -j$(nproc)
 
@@ -100,6 +107,7 @@ else
     make install
 fi
 
+
 echo "Installing the jar file in maven local repo.."
 JAR_NAME=$(ls /usr/local/share/java/opencv4/ | grep .jar)
 JAR_PATH=${BIN_INSTALL_DIR}/share/java/opencv4/${JAR_NAME}
@@ -109,6 +117,11 @@ mvn install:install-file  -Dfile=${JAR_PATH} \
                           -Dversion=${OPENCV_VERSION} \
                           -Dpackaging=jar \
                           -DgeneratePom=true
+
+SO_LIB_NAME=$(ls /usr/local/share/java/opencv4/ | grep .so)
+SO_LIB__PATH=${BIN_INSTALL_DIR}/share/java/opencv4/${SO_LIB_NAME}
+sudo cp ${SO_LIB__PATH} /usr/lib/
+
 
 SO_LIB_NAME=$(ls /usr/local/share/java/opencv4/ | grep .so)
 SO_LIB__PATH=${BIN_INSTALL_DIR}/share/java/opencv4/${SO_LIB_NAME}
